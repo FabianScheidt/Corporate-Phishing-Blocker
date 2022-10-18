@@ -1,0 +1,20 @@
+default_stages: [commit, manual]
+repos:
+  - repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+      - id: black
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+  - repo: https://github.com/prettier/pre-commit
+    rev: v2.1.2
+    hooks:
+      - id: prettier
+        stages:
+          - commit
+          - manual
