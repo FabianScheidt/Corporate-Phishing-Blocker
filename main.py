@@ -2,8 +2,14 @@
 import sys
 import os
 import json
+import time
 
 import requests
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 API_KEY = ""
@@ -70,7 +76,53 @@ def validate_domains():
 
 
 def configure_outlook():
-    raise NotImplementedError
+    if not os.path.exists("valid-domains.json"):
+        print(
+            "Valid domains don't seem to be collected. Run collection and validation first."
+        )
+        sys.exit(1)
+
+    driver = webdriver.Chrome()
+    driver.get("https://outlook.office365.com/")
+    print("Please sign in to Outlook Webapp!")
+
+    # Open Settings
+    settings = (By.ID, "owaSettingsButton")
+    WebDriverWait(driver, 300).until(EC.presence_of_element_located(settings))
+    driver.find_element(*settings).click()
+
+    all_settings = (By.XPATH, "//*[contains(text(),'View all Outlook settings')]")
+    WebDriverWait(driver, 30).until(EC.presence_of_element_located(all_settings))
+    driver.find_element(*all_settings).click()
+
+    rules_button = (By.XPATH, "//*[contains(text(),'Rules')]/ancestor::button")
+    WebDriverWait(driver, 30).until(EC.presence_of_element_located(rules_button))
+    time.sleep(10)  # Don't ask why...
+    driver.find_elements(*rules_button)[-1].click()
+
+    # Create the rule
+    driver.implicitly_wait(10)
+    driver.find_element(
+        By.XPATH, "//*[contains(text(),'Add new rule')]/ancestor::button"
+    ).click()
+    driver.find_element(By.XPATH, "//*[contains(text(),'Select a condition')]").click()
+    driver.find_element(
+        By.XPATH, "//*[contains(text(),'Sender address includes')]"
+    ).click()
+
+    address_input = driver.find_element(
+        By.XPATH, "//input[@placeholder='Enter all or part of an address']"
+    )
+
+    with open("valid-domains.json", "r") as valid_domains_file:
+        domains = json.load(valid_domains_file)
+
+    for domain in domains:
+        address_input.send_keys("@" + domain + Keys.RETURN)
+
+    print("Done! Finish your rule and then abort this script.")
+    while True:
+        time.sleep(1)
 
 
 if __name__ == "__main__":
